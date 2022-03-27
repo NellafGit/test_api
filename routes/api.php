@@ -22,7 +22,5 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 
 Route::resource('authors', AuthorController::class);
-Route::post('/authors/{author}/photo', [AuthorController::class, 'uploadPhoto']);
 Route::resource('books', BookController::class);
-Route::post('/books/{book}/photo', [BookController::class, 'uploadPhoto']);
 

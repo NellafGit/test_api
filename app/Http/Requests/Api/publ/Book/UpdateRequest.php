@@ -27,10 +27,12 @@ class UpdateRequest extends FormRequest
             'title' => 'string|max:255',
             'content' => 'string|max:255',
             'published_year' => 'integer|max:9999',
+            'authors' => 'filled',
             'authors.*' => 'array',
-            'authors.*.name' => 'string|required|max:255',
-            'authors.*.surname' => 'string|required|max:255',
-            'authors.*.year' => 'integer|required|max:9999',
+            'authors.*.name' => 'string|filled|max:255',
+            'authors.*.surname' => 'string|filled|max:255',
+            'authors.*.year' => 'integer|filled|max:9999',
+            'photo' => 'filled|mimes:jpeg,jpg,png,gif|max:10000',
         ];
     }
 }

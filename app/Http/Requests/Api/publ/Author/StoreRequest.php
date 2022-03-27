@@ -32,6 +32,7 @@ class StoreRequest extends FormRequest
             'books.*.title' => 'string|required|max:255',
             'books.*.content' => 'string|required|max:255',
             'books.*.publish_year' => 'integer|required|max:9999',
+            'photo' => 'filled|mimes:jpeg,jpg,png,gif|max:10000',
         ];
     }
 }

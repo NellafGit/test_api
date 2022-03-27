@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Api\publ;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\publ\Book\StoreRequest;
 use App\Http\Requests\Api\publ\Book\UpdateRequest;
-use App\Http\Requests\Api\publ\Book\UploadRequest;
 use App\Http\Resources\Api\publ\BookResource;
 use App\Http\Resources\Api\publ\Collections\BookCollection;
 use App\Models\Book;
+use Illuminate\Http\File;
 use Illuminate\Http\Response;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 
 class BookController extends Controller
 {
@@ -29,6 +30,12 @@ class BookController extends Controller
             }
         });
 
+        if ($request->hasFile('photo')) {
+            $storage_link = Storage::disk('books')->putFile($book->id, new File($request->safe()->file('photo')));
+            $public_link = Storage::disk('books')->url($storage_link);
+            $book->image()->create(compact('public_link', 'storage_link'));
+        }
+
         return response(new BookResource($book));
     }
 
@@ -39,13 +46,26 @@ class BookController extends Controller
 
     public function update(UpdateRequest $request, Book $book): Response
     {
-        $book->authors()->update($request->validated());
+        $book->update($request->safe()->except('authors'));
 
         $request->whenFilled('authors', function () use ($request, $book) {
             foreach ($request->safe()->collect()->get('authors') as $author) {
                 $book->authors()->create($author);
             }
         });
+
+        if ($request->hasFile('photo')) {
+            $storage_link = Storage::disk('books')->putFile($book->id, new File($request->file('photo')));
+            $public_link = Storage::disk('books')->url($storage_link);
+
+            if ($book->image()->first()) {
+                $oldPhoto = $book->image()->select('storage_link')->first();
+                Storage::disk('books')->delete($oldPhoto->storage_link);
+                $book->image()->update(compact('public_link', 'storage_link'));
+            } else {
+                $book->image()->create(compact('public_link', 'storage_link'));
+            }
+        }
 
         return response(new BookResource($book));
     }
@@ -55,20 +75,5 @@ class BookController extends Controller
         $book->delete();
 
         return response()->json(['message' => 'Deleted'], 204);
-    }
-
-    public function uploadPhoto(Book $book, UploadRequest $request): JsonResponse
-    {
-        if ($request->hasFile('photo')) {
-            $storage_link = $request->file('photo')->store('storage/images/books/'.$book->id);
-            $name = pathinfo($storage_link)['basename'];
-            $public_link = ('/images/books/'.$book->id.'/'.$name);
-
-            $book->image()->create(compact('public_link', 'storage_link'));
-
-            return response()->json(['message' => 'Uploaded'], 200);
-        }
-
-        return response()->json(['message' => 'Variable photo not found']);
     }
 }

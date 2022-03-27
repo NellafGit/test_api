@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers\Api\publ;
 
+use App\Helpers\CollectionHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\publ\Author\StoreRequest;
 use App\Http\Requests\Api\publ\Author\UpdateRequest;
-use App\Http\Requests\Api\publ\Author\UploadRequest;
 use App\Http\Resources\Api\publ\AuthorResource;
 use App\Http\Resources\Api\publ\Collections\AuthorCollection;
 use App\Models\Author;
+use Illuminate\Http\File;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 
 class AuthorController extends Controller
 {
@@ -29,6 +31,12 @@ class AuthorController extends Controller
             }
         });
 
+        if ($request->hasFile('photo')) {
+            $storage_link = Storage::disk('authors')->putFile($author->id, new File($request->safe()->file('photo')));
+            $public_link = Storage::disk('authors')->url($storage_link);
+            $author->image()->create(compact('public_link', 'storage_link'));
+        }
+
         return response(new AuthorResource($author));
     }
 
@@ -40,11 +48,25 @@ class AuthorController extends Controller
     public function update(UpdateRequest $request, Author $author): Response
     {
         $author->update($request->safe()->except('books'));
+
         $request->whenFilled('books', function () use ($request, $author) {
             foreach ($request->safe()->collect()->get('books') as $book) {
                 $author->books()->update($book);
             }
         });
+
+        if ($request->hasFile('photo')) {
+            $storage_link = Storage::disk('authors')->putFile($author->id, new File($request->file('photo')));
+            $public_link = Storage::disk('authors')->url($storage_link);
+
+            if ($author->image()->first()) {
+                $oldPhoto = $author->image()->select('storage_link')->first();
+                Storage::disk('authors')->delete($oldPhoto->storage_link);
+                $author->image()->update(compact('public_link', 'storage_link'));
+            } else {
+                $author->image()->create(compact('public_link', 'storage_link'));
+            }
+        }
 
         return response(new AuthorResource($author));
     }
@@ -54,20 +76,5 @@ class AuthorController extends Controller
         $author->delete();
 
         return response()->json(['message' => 'Deleted'], 204);
-    }
-
-    public function uploadPhoto(Author $author, UploadRequest $request): JsonResponse
-    {
-        if ($request->hasFile('photo')) {
-            $storage_link = $request->file('photo')->store('storage/images/authors/'.$author->id);
-            $name = pathinfo($storage_link)['basename'];
-            $public_link = ('/images/authors/'.$author->id.'/'.$name);
-
-            $author->image()->create(compact('public_link', 'storage_link'));
-
-            return response()->json(['message' => 'Uploaded'], 200);
-        }
-
-        return response()->json(['message' => 'Variable photo not found']);
     }
 }
