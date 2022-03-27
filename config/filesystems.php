@@ -42,6 +42,19 @@ return [
             'visibility' => 'public',
         ],
 
+        'authors' =>[
+            'driver' => 'local',
+            'root' => storage_path('images/authors'),
+            'url' => '/images/authors',
+
+        ],
+
+        'books' =>[
+            'driver' => 'local',
+            'root' => storage_path('images/books'),
+            'url' => '/images/books',
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
@@ -68,7 +81,7 @@ return [
 
     'links' => [
 //        public_path('storage') => storage_path('app/storage/images'),
-        public_path('images') => storage_path('app/storage/images')
+        public_path('images') => storage_path('images')
     ],
 
 ];
